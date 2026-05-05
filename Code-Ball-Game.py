@@ -3,7 +3,7 @@ import streamlit.components.v1 as components
 
 st.set_page_config(page_title="Forest Runner", layout="wide")
 
-st.title("🌍 Forest Runner – Start Menu Edition")
+st.title("🌍 Forest Runner – FINAL Edition")
 
 game_html = """
 <!DOCTYPE html>
@@ -12,107 +12,106 @@ game_html = """
 <meta charset="utf-8"/>
 
 <style>
-    body {
-        margin: 0;
-        overflow: hidden;
-        font-family: Arial;
-    }
+body {
+    margin: 0;
+    overflow: hidden;
+    font-family: Arial;
+}
 
-    canvas {
-        display: block;
-        margin: auto;
-        border-radius: 12px;
-    }
+canvas {
+    display: block;
+    margin: auto;
+    border-radius: 12px;
+}
 
-    /* ---------------- START SCREEN ---------------- */
-    #startScreen {
-        position: absolute;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(#0b1020, #05060c);
-        color: white;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        z-index: 10;
-    }
+/* ---------------- START SCREEN ---------------- */
+#startScreen {
+    position: absolute;
+    width: 900px;
+    height: 420px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(#0b1020, #05060c);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+    border-radius: 12px;
+}
 
-    #startScreen h1 {
-        font-size: 60px;
-        margin-bottom: 10px;
-    }
+#startScreen h1 {
+    font-size: 60px;
+}
 
-    #startScreen p {
-        opacity: 0.7;
-        margin-bottom: 20px;
-    }
+#startBtn {
+    padding: 14px 30px;
+    font-size: 20px;
+    border: none;
+    border-radius: 12px;
+    background: #ffd54a;
+    cursor: pointer;
+}
 
-    #startBtn {
-        padding: 15px 35px;
-        font-size: 20px;
-        border: none;
-        border-radius: 12px;
-        background: #ffd54a;
-        cursor: pointer;
-    }
+/* ---------------- UI ---------------- */
+#score {
+    position: absolute;
+    top: 10px;
+    left: 20px;
+    color: white;
+    font-size: 20px;
+}
 
-    /* ---------------- UI ---------------- */
-    #score {
-        position: absolute;
-        top: 10px;
-        left: 20px;
-        font-size: 20px;
-        color: white;
-    }
+#gameover {
+    position: absolute;
+    top: 35%;
+    width: 100%;
+    text-align: center;
+    font-size: 60px;
+    color: white;
+    display: none;
+}
 
-    #gameover {
-        position: absolute;
-        top: 30%;
-        width: 100%;
-        text-align: center;
-        font-size: 60px;
-        color: white;
-        display: none;
-    }
+#restart {
+    position: absolute;
+    top: 52%;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 15px 30px;
+    font-size: 20px;
+    display: none;
+    border-radius: 12px;
+}
 
-    #restart {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translateX(-50%);
-        padding: 15px 30px;
-        font-size: 20px;
-        display: none;
-        border-radius: 12px;
-    }
+/* ---------------- BUTTON FIX ---------------- */
+#ui {
+    position: absolute;
+    bottom: 20px;
+    width: 900px;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+}
 
-    #ui {
-        position: absolute;
-        bottom: 20px;
-        width: 100%;
-        text-align: center;
-    }
-
-    button {
-        padding: 14px 28px;
-        font-size: 18px;
-        border: none;
-        border-radius: 12px;
-        background: #1b2440;
-        color: white;
-        cursor: pointer;
-    }
+button {
+    padding: 14px 28px;
+    font-size: 18px;
+    border: none;
+    border-radius: 12px;
+    background: #1b2440;
+    color: white;
+    cursor: pointer;
+}
 </style>
+
 </head>
 
 <body>
 
-<!-- START SCREEN -->
 <div id="startScreen">
     <h1>Hallo! 👋</h1>
-    <p>Forest Runner starten</p>
-    <button id="startBtn">▶ START</button>
+    <button id="startBtn">START</button>
 </div>
 
 <canvas id="game" width="900" height="420"></canvas>
@@ -129,25 +128,21 @@ game_html = """
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-// ---------------- GAME STATE ----------------
 let started = false;
 let gameOver = false;
 
-// ---------------- START GAME ----------------
-document.getElementById("startBtn").onclick = function() {
+document.getElementById("startBtn").onclick = () => {
     started = true;
     document.getElementById("startScreen").style.display = "none";
 };
 
-// ---------------- PLAYER ----------------
-let player = {
-    x: 120,
-    y: 300,
-    w: 28,
-    h: 28,
-    vy: 0
-};
+document.getElementById("jumpBtn").addEventListener("mousedown", jump);
+document.addEventListener("keydown", e => {
+    if (e.code === "Space") jump();
+});
 
+// ---------------- WORLD ----------------
+let player = { x:120, y:300, w:28, h:28, vy:0 };
 let gravity = 1.1;
 let ground = 300;
 
@@ -160,31 +155,23 @@ let time = 0;
 // ---------------- INPUT ----------------
 function jump() {
     if (!started || gameOver) return;
-
-    if (player.y >= ground) {
-        player.vy = -15;
-    }
+    if (player.y >= ground) player.vy = -15;
 }
-
-document.getElementById("jumpBtn").addEventListener("mousedown", jump);
-document.addEventListener("keydown", e => {
-    if (e.code === "Space") jump();
-});
 
 // ---------------- SPAWN ----------------
-function spawnObstacle() {
-    if (!started || gameOver) return;
+setInterval(() => {
+    if (started && !gameOver) {
+        obstacles.push({ x:900, y:320, w:40, h:40 });
+    }
+}, 1700);
 
-    obstacles.push({
-        x: 900,
-        y: 320,
-        w: 40,
-        h: 40
-    });
-}
-setInterval(spawnObstacle, 1700);
+setInterval(() => {
+    if (started && !gameOver) {
+        clouds.push({ x:900, y:Math.random()*120+20, s:30+Math.random()*30 });
+    }
+}, 4000);
 
-// ---------------- SKY ----------------
+// ---------------- PHASE ----------------
 function getPhase() {
     let t = time % 60;
     if (t < 20) return 0;
@@ -193,92 +180,152 @@ function getPhase() {
     return 3;
 }
 
+// ---------------- SKY ----------------
 function drawSky(p) {
     let g = ctx.createLinearGradient(0,0,0,420);
 
-    if (p === 0) { g.addColorStop(0,"#02030a"); g.addColorStop(1,"#050817"); }
-    if (p === 1) { g.addColorStop(0,"#1b2a4a"); g.addColorStop(1,"#ff9a6a"); }
-    if (p === 2) { g.addColorStop(0,"#87ceeb"); g.addColorStop(1,"#e0f6ff"); }
-    if (p === 3) { g.addColorStop(0,"#ffb36b"); g.addColorStop(1,"#1b1e3a"); }
+    if (p===0){ g.addColorStop(0,"#02030a"); g.addColorStop(1,"#050817"); }
+    if (p===1){ g.addColorStop(0,"#1b2a4a"); g.addColorStop(1,"#ff9a6a"); }
+    if (p===2){ g.addColorStop(0,"#87ceeb"); g.addColorStop(1,"#e0f6ff"); }
+    if (p===3){ g.addColorStop(0,"#ffb36b"); g.addColorStop(1,"#1b1e3a"); }
 
     ctx.fillStyle = g;
     ctx.fillRect(0,0,900,420);
 }
 
-// ---------------- LOOP ----------------
-function update() {
-    if (!started || gameOver) return;
+// ---------------- SUN / MOON ----------------
+function drawSunMoon(p) {
+    ctx.beginPath();
 
-    time += 0.02;
+    if (p===2||p===1){
+        ctx.fillStyle="#ffd84d";
+        ctx.arc(750,80,35,0,Math.PI*2);
+    } else {
+        ctx.fillStyle="#dcdcdc";
+        ctx.arc(750,80,30,0,Math.PI*2);
+    }
 
-    player.y += player.vy;
-    if (player.y < ground) player.vy += gravity;
-    else { player.y = ground; player.vy = 0; }
+    ctx.fill();
+}
 
-    for (let o of obstacles) o.x -= speed;
+// ---------------- STARS ----------------
+function drawStars(p) {
+    if (p!==0) return;
+    ctx.fillStyle="white";
+    for(let i=0;i<60;i++){
+        ctx.fillRect(Math.random()*900,Math.random()*200,2,2);
+    }
+}
+
+// ---------------- TREES ----------------
+function drawTrees(p) {
+    for(let i=0;i<18;i++){
+        let x=i*60;
+        ctx.fillStyle = (p===0) ? "#05070c" : "#1f3b2a";
+        ctx.fillRect(x,260,20,160);
+        ctx.beginPath();
+        ctx.arc(x+10,260,30,0,Math.PI*2);
+        ctx.fill();
+    }
+}
+
+// ---------------- GROUND ----------------
+function drawGround(){
+    ctx.fillStyle="#1a1f2e";
+    ctx.fillRect(0,340,900,80);
+}
+
+// ---------------- CLOUDS ----------------
+function drawClouds(){
+    ctx.fillStyle="rgba(255,255,255,0.7)";
+    for(let c of clouds){
+        ctx.beginPath();
+        ctx.arc(c.x,c.y,c.s,0,Math.PI*2);
+        ctx.fill();
+        c.x-=1.2;
+    }
+    clouds = clouds.filter(c=>c.x>-100);
+}
+
+// ---------------- UPDATE ----------------
+function update(){
+    if(!started||gameOver) return;
+
+    time+=0.02;
+
+    player.y+=player.vy;
+    if(player.y<ground) player.vy+=gravity;
+    else { player.y=ground; player.vy=0; }
+
+    for(let o of obstacles) o.x-=speed;
 
     score++;
-    document.getElementById("score").innerText =
-        "Score: " + Math.floor(score/10);
+    document.getElementById("score").innerText="Score: "+Math.floor(score/10);
 
-    if (score % 200 === 0) speed += 0.5;
+    if(score%200===0) speed+=0.5;
 
-    for (let o of obstacles) {
-        if (
-            player.x < o.x + o.w &&
-            player.x + player.w > o.x &&
-            player.y < o.y + o.h &&
-            player.y + player.h > o.y
-        ) {
+    for(let o of obstacles){
+        if(
+            player.x<o.x+o.w &&
+            player.x+player.w>o.x &&
+            player.y<o.y+o.h &&
+            player.y+player.h>o.y
+        ){
             endGame();
         }
     }
 
-    obstacles = obstacles.filter(o => o.x > -100);
+    obstacles = obstacles.filter(o=>o.x>-100);
 }
 
 // ---------------- DRAW ----------------
-function drawPlayer() {
-    ctx.fillStyle = "#ffd54a";
-    ctx.fillRect(player.x, player.y, player.w, player.h);
+function drawPlayer(){
+    ctx.fillStyle="#ffd54a";
+    ctx.fillRect(player.x,player.y,player.w,player.h);
 
-    ctx.fillStyle = "black";
-    ctx.fillRect(player.x+6, player.y+8, 3, 3);
-    ctx.fillRect(player.x+16, player.y+8, 3, 3);
+    ctx.fillStyle="black";
+    ctx.fillRect(player.x+6,player.y+8,3,3);
+    ctx.fillRect(player.x+16,player.y+8,3,3);
 }
 
-function drawObstacles() {
-    ctx.fillStyle = "#7a4a1f";
-    for (let o of obstacles) ctx.fillRect(o.x,o.y,o.w,o.h);
+function drawObstacles(){
+    ctx.fillStyle="#7a4a1f";
+    for(let o of obstacles) ctx.fillRect(o.x,o.y,o.w,o.h);
 }
 
 // ---------------- GAME OVER ----------------
-function endGame() {
-    gameOver = true;
-    document.getElementById("gameover").style.display = "block";
-    document.getElementById("restart").style.display = "block";
+function endGame(){
+    gameOver=true;
+    document.getElementById("gameover").style.display="block";
+    document.getElementById("restart").style.display="block";
 }
 
-function resetGame() {
-    started = false;
-    gameOver = false;
-    score = 0;
-    speed = 6;
-    obstacles = [];
+function resetGame(){
+    started=false;
+    gameOver=false;
+    score=0;
+    speed=6;
+    obstacles=[];
+    clouds=[];
+    player.y=ground;
+    player.vy=0;
 
-    player.y = ground;
-    player.vy = 0;
-
-    document.getElementById("gameover").style.display = "none";
-    document.getElementById("restart").style.display = "none";
-    document.getElementById("startScreen").style.display = "flex";
+    document.getElementById("gameover").style.display="none";
+    document.getElementById("restart").style.display="none";
+    document.getElementById("startScreen").style.display="flex";
 }
 
-// ---------------- MAIN LOOP ----------------
-function loop() {
-    let phase = getPhase();
+// ---------------- LOOP ----------------
+function loop(){
+    let p=getPhase();
 
-    drawSky(phase);
+    drawSky(p);
+    drawStars(p);
+    drawSunMoon(p);
+    drawTrees(p);
+    drawClouds();
+    drawGround();
+
     update();
     drawPlayer();
     drawObstacles();
