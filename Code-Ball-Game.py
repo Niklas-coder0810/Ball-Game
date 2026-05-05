@@ -1,9 +1,9 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="Runner Game", layout="wide")
+st.set_page_config(page_title="Runner Forest Ultra", layout="wide")
 
-st.title("🌍 Runner Game – Forest & Beach Mode")
+st.title("🌲 Runner Forest Ultra (Day/Night System)")
 
 game_html = """
 <!DOCTYPE html>
@@ -12,207 +12,200 @@ game_html = """
 <meta charset="utf-8"/>
 
 <style>
-body {
-    margin: 0;
-    overflow: hidden;
-    font-family: Arial;
-    background: linear-gradient(135deg, #c89b63, #e3c08a);
+body{
+    margin:0;
+    overflow:hidden;
+    font-family:Arial;
+    background:#111;
 }
 
-/* ---------------- CANVAS ---------------- */
-canvas {
-    display: block;
-    margin: auto;
-    border-radius: 12px;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.4),
-                inset 0 0 0 6px #8b5a2b;
+canvas{
+    display:block;
+    margin:auto;
+    border-radius:14px;
+    box-shadow:0 25px 60px rgba(0,0,0,0.6);
 }
 
-/* ---------------- MENU ---------------- */
-#menu {
-    position: absolute;
-    width: 900px;
-    height: 420px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: linear-gradient(#0b1020, #05060c);
-    color: white;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    z-index: 10;
-    border-radius: 12px;
+/* MENU */
+#menu{
+    position:absolute;
+    width:900px;
+    height:420px;
+    left:50%;
+    transform:translateX(-50%);
+    top:20px;
+    background:linear-gradient(#0b1020,#05060c);
+    color:white;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    z-index:10;
+    border-radius:12px;
 }
 
-#menu h1 {
-    font-size: 50px;
-    margin-bottom: 20px;
+/* UI */
+#score,#level{
+    position:absolute;
+    top:10px;
+    color:white;
+    background:rgba(0,0,0,0.45);
+    padding:8px 14px;
+    border-radius:10px;
 }
 
-.menuBtn {
-    padding: 14px 28px;
-    font-size: 18px;
-    margin: 10px;
-    border-radius: 12px;
-    border: none;
-    cursor: pointer;
-    background: linear-gradient(#b07a3a, #8b5a2b);
-    color: white;
+#score{left:20px;}
+#level{right:20px;}
+
+#gameover{
+    position:absolute;
+    top:35%;
+    width:100%;
+    text-align:center;
+    font-size:60px;
+    color:white;
+    display:none;
 }
 
-/* ---------------- UI ---------------- */
-#score, #level {
-    position: absolute;
-    top: 10px;
-    color: white;
-    padding: 8px 14px;
-    border-radius: 10px;
-    background: rgba(0,0,0,0.4);
+/* BUTTONS */
+#ui{
+    position:absolute;
+    top:460px;
+    left:50%;
+    transform:translateX(-50%);
 }
 
-#score { left: 20px; }
-#level { right: 20px; }
-
-#gameover {
-    position: absolute;
-    top: 35%;
-    width: 100%;
-    text-align: center;
-    font-size: 60px;
-    color: white;
-    display: none;
-}
-
-#restart {
-    position: absolute;
-    top: 52%;
-    left: 50%;
-    transform: translateX(-50%);
-    padding: 15px 30px;
-    font-size: 20px;
-    display: none;
-    border-radius: 12px;
-    border: none;
-    background: #ffd54a;
-}
-
-/* ---------------- BUTTON ---------------- */
-#ui {
-    position: absolute;
-    top: 460px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 900px;
-    text-align: center;
-}
-
-button {
-    padding: 16px 32px;
-    font-size: 20px;
-    border-radius: 14px;
-    border: none;
-    background: linear-gradient(#b07a3a, #8b5a2b);
-    color: white;
-    cursor: pointer;
+button{
+    padding:16px 32px;
+    border:none;
+    border-radius:12px;
+    background:#8b5a2b;
+    color:white;
+    font-size:20px;
+    cursor:pointer;
 }
 </style>
+
 </head>
 
 <body>
 
-<!-- 🎮 MENU -->
 <div id="menu">
-    <h1>Hallo 👋 Wähle dein Spiel</h1>
-    <button class="menuBtn" onclick="startGame('forest')">🌲 Forest Run</button>
-    <button class="menuBtn" onclick="startGame('beach')">🏖 Beach Run</button>
+    <h1>🌲 Forest Run</h1>
+    <button onclick="startGame()">Start</button>
 </div>
 
 <canvas id="game" width="900" height="420"></canvas>
 
 <div id="score">Score: 0</div>
 <div id="level">Level: 1</div>
-
 <div id="gameover">GAME OVER</div>
-<button id="restart" onclick="resetGame()">Neustart</button>
 
 <div id="ui">
-    <button id="jumpBtn">⬆ SPRINGEN</button>
+    <button onclick="jump()">⬆ SPRINGEN</button>
 </div>
 
 <script>
+
+/* =========================================================
+   CORE STATE
+========================================================= */
+
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-let mode = "forest";
 let started = false;
 let gameOver = false;
 
-let player = {x:120,y:300,w:28,h:28,vy:0};
+let time = 0;
+let score = 0;
+let level = 1;
+let speed = 6;
+
+let player = {
+    x:120,
+    y:300,
+    w:28,
+    h:28,
+    vy:0
+};
+
 let gravity = 1.1;
 let ground = 300;
 
 let obstacles = [];
-let clouds = [];
-let birds = [];
 
-let score = 0;
-let level = 1;
-let speed = 6;
-let time = 0;
+/* =========================================================
+   START
+========================================================= */
 
-/* ---------------- START ---------------- */
-function startGame(m){
-    mode = m;
+function startGame(){
     started = true;
-    document.getElementById("menu").style.display = "none";
+    document.getElementById("menu").style.display="none";
 }
 
-/* ---------------- INPUT ---------------- */
+/* =========================================================
+   INPUT
+========================================================= */
+
 function jump(){
-    if(!started||gameOver) return;
-    if(player.y>=ground) player.vy=-15;
+    if(!started || gameOver) return;
+    if(player.y >= ground){
+        player.vy = -15;
+    }
 }
 
-document.getElementById("jumpBtn").onclick = jump;
-document.addEventListener("keydown",e=>{
-    if(e.code==="Space") jump();
-});
+/* =========================================================
+   SPAWN
+========================================================= */
 
-/* ---------------- SPAWN ---------------- */
 setInterval(()=>{
-    if(started&&!gameOver){
+    if(started && !gameOver){
         obstacles.push({x:900,y:320,w:40,h:40});
     }
 },1500);
 
-/* ---------------- UPDATE ---------------- */
+/* =========================================================
+   UPDATE
+========================================================= */
+
 function update(){
-    if(!started||gameOver) return;
 
-    time+=0.02;
+    if(!started || gameOver) return;
 
-    player.y+=player.vy;
-    if(player.y<ground) player.vy+=gravity;
-    else {player.y=ground;player.vy=0;}
+    time += 0.02;
 
-    for(let o of obstacles) o.x-=speed;
+    player.y += player.vy;
 
-    score++;
-    level=Math.floor(score/500)+1;
-    speed=6+level*0.5;
-
-    document.getElementById("score").innerText="Score: "+Math.floor(score/10);
-    document.getElementById("level").innerText="Level: "+level;
-
-    obstacles = obstacles.filter(o=>o.x>-100);
+    if(player.y < ground){
+        player.vy += gravity;
+    } else {
+        player.y = ground;
+        player.vy = 0;
+    }
 
     for(let o of obstacles){
-        if(hit(o)) endGame();
+        o.x -= speed;
     }
+
+    score++;
+    level = Math.floor(score/500)+1;
+    speed = 6 + level*0.5;
+
+    document.getElementById("score").innerText = "Score: " + Math.floor(score/10);
+    document.getElementById("level").innerText = "Level: " + level;
+
+    for(let o of obstacles){
+        if(hit(o)) gameOver = true;
+    }
+
+    obstacles = obstacles.filter(o=>o.x>-100);
 }
 
-/* ---------------- COLLISION ---------------- */
+/* =========================================================
+   COLLISION
+========================================================= */
+
 function hit(o){
     return player.x<o.x+o.w &&
            player.x+player.w>o.x &&
@@ -220,79 +213,165 @@ function hit(o){
            player.y+player.h>o.y;
 }
 
-/* ---------------- DRAW ---------------- */
+/* =========================================================
+   DAY NIGHT SYSTEM
+========================================================= */
+
+function getDayPhase(){
+
+    let t = time % 60;
+
+    if(t < 20) return "night";
+    if(t < 30) return "sunrise";
+    if(t < 50) return "day";
+    return "sunset";
+}
+
+/* =========================================================
+   DRAW SKY
+========================================================= */
+
+function drawSky(){
+
+    let phase = getDayPhase();
+
+    if(phase === "night"){
+        ctx.fillStyle = "#050817";
+    }
+    else if(phase === "sunrise"){
+        ctx.fillStyle = "#ff9966";
+    }
+    else if(phase === "day"){
+        ctx.fillStyle = "#87ceeb";
+    }
+    else{
+        ctx.fillStyle = "#ff5e62";
+    }
+
+    ctx.fillRect(0,0,900,420);
+}
+
+/* =========================================================
+   SUN + MOON
+========================================================= */
+
+function drawSunMoon(){
+
+    let phase = getDayPhase();
+
+    if(phase === "day" || phase === "sunrise" || phase === "sunset"){
+        ctx.fillStyle = "yellow";
+        ctx.beginPath();
+        ctx.arc(750,80,30,0,Math.PI*2);
+        ctx.fill();
+    }
+
+    if(phase === "night"){
+        ctx.fillStyle = "#ddd";
+        ctx.beginPath();
+        ctx.arc(750,80,25,0,Math.PI*2);
+        ctx.fill();
+    }
+}
+
+/* =========================================================
+   STARS
+========================================================= */
+
+function drawStars(){
+
+    let phase = getDayPhase();
+    if(phase !== "night") return;
+
+    ctx.fillStyle = "white";
+
+    for(let i=0;i<60;i++){
+        let x = (i*70) % 900;
+        let y = (i*30) % 200;
+        ctx.fillRect(x,y,2,2);
+    }
+}
+
+/* =========================================================
+   CLOUDS
+========================================================= */
+
+function drawClouds(){
+
+    let phase = getDayPhase();
+    if(phase !== "day") return;
+
+    ctx.fillStyle = "white";
+
+    for(let i=0;i<5;i++){
+        let x = (i*200 + time*20) % 900;
+        ctx.beginPath();
+        ctx.arc(x,80,20,0,Math.PI*2);
+        ctx.arc(x+20,80,20,0,Math.PI*2);
+        ctx.fill();
+    }
+}
+
+/* =========================================================
+   TREES (FIXED LOOK)
+========================================================= */
+
+function drawTrees(){
+
+    for(let i=0;i<18;i++){
+
+        let x = i*60;
+
+        // trunk
+        ctx.fillStyle = "#5b3a1a";
+        ctx.fillRect(x+5,280,10,80);
+
+        // leaves
+        ctx.fillStyle = "#1f7a3a";
+        ctx.beginPath();
+        ctx.arc(x+10,260,25,0,Math.PI*2);
+        ctx.fill();
+    }
+}
+
+/* =========================================================
+   DRAW
+========================================================= */
+
 function draw(){
 
     ctx.clearRect(0,0,900,420);
 
-    if(mode==="forest"){
-        drawForest();
-    } else {
-        drawBeach();
-    }
+    drawSky();
+    drawStars();
+    drawClouds();
+    drawSunMoon();
+    drawTrees();
 
-    drawGround();
+    // ground
+    ctx.fillStyle = "#1a1f2e";
+    ctx.fillRect(0,340,900,80);
 
-    ctx.fillStyle="#ffd54a";
+    // player
+    ctx.fillStyle = "yellow";
     ctx.fillRect(player.x,player.y,player.w,player.h);
 
+    // eyes
+    ctx.fillStyle = "black";
+    ctx.fillRect(player.x+6,player.y+8,3,3);
+    ctx.fillRect(player.x+16,player.y+8,3,3);
+
+    // obstacles
     ctx.fillStyle="#7a4a1f";
     for(let o of obstacles){
         ctx.fillRect(o.x,o.y,o.w,o.h);
     }
 }
 
-/* ---------------- FOREST ---------------- */
-function drawForest(){
-    ctx.fillStyle="#87ceeb";
-    ctx.fillRect(0,0,900,420);
+/* =========================================================
+   LOOP
+========================================================= */
 
-    ctx.fillStyle="#1f3b2a";
-    for(let i=0;i<18;i++){
-        let x=i*60;
-        ctx.fillRect(x,260,20,160);
-    }
-}
-
-/* ---------------- BEACH ---------------- */
-function drawBeach(){
-
-    // sky
-    ctx.fillStyle="#87ceeb";
-    ctx.fillRect(0,0,900,260);
-
-    // sea
-    ctx.fillStyle="#1e90ff";
-    ctx.fillRect(0,120,900,140);
-
-    // sand
-    ctx.fillStyle="#f4d03f";
-    ctx.fillRect(0,260,900,160);
-}
-
-/* ---------------- GROUND ---------------- */
-function drawGround(){
-    if(mode==="forest"){
-        ctx.fillStyle="#1a1f2e";
-    } else {
-        ctx.fillStyle="#f4d03f";
-    }
-    ctx.fillRect(0,340,900,80);
-}
-
-/* ---------------- GAME OVER ---------------- */
-function endGame(){
-    gameOver=true;
-    document.getElementById("gameover").style.display="block";
-    document.getElementById("restart").style.display="block";
-}
-
-/* ---------------- RESET ---------------- */
-function resetGame(){
-    location.reload();
-}
-
-/* ---------------- LOOP ---------------- */
 function loop(){
     update();
     draw();
@@ -300,6 +379,7 @@ function loop(){
 }
 
 loop();
+
 </script>
 
 </body>
