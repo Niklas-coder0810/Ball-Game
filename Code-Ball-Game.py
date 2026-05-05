@@ -3,7 +3,7 @@ import streamlit.components.v1 as components
 
 st.set_page_config(page_title="Forest Runner", layout="wide")
 
-st.title("🌍 Forest Runner – FINAL Edition")
+st.title("🌍 Forest Runner – Wood UI Edition")
 
 game_html = """
 <!DOCTYPE html>
@@ -16,12 +16,20 @@ body {
     margin: 0;
     overflow: hidden;
     font-family: Arial;
+
+    /* 🪵 Holz Hintergrund außerhalb des Spiels */
+    background: linear-gradient(135deg, #c89b63, #e3c08a);
 }
 
+/* ---------------- CANVAS ---------------- */
 canvas {
     display: block;
     margin: auto;
     border-radius: 12px;
+
+    box-shadow:
+        0 20px 50px rgba(0,0,0,0.35),
+        inset 0 0 0 6px #8b5a2b;
 }
 
 /* ---------------- START SCREEN ---------------- */
@@ -54,15 +62,20 @@ canvas {
     cursor: pointer;
 }
 
-/* ---------------- UI ---------------- */
+/* ---------------- SCORE ---------------- */
 #score {
     position: absolute;
     top: 10px;
     left: 20px;
-    color: white;
     font-size: 20px;
+    color: white;
+
+    background: rgba(139, 90, 43, 0.6);
+    padding: 6px 12px;
+    border-radius: 8px;
 }
 
+/* ---------------- GAME OVER ---------------- */
 #gameover {
     position: absolute;
     top: 35%;
@@ -73,6 +86,7 @@ canvas {
     display: none;
 }
 
+/* ---------------- RESTART ---------------- */
 #restart {
     position: absolute;
     top: 52%;
@@ -82,33 +96,44 @@ canvas {
     font-size: 20px;
     display: none;
     border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    background: #ffd54a;
 }
 
-/* ---------------- BUTTON FIX ---------------- */
+/* ---------------- UI (BUTTON POSITION FIX) ---------------- */
 #ui {
     position: absolute;
-    bottom: 20px;
-    width: 900px;
+    top: 460px;
     left: 50%;
     transform: translateX(-50%);
+    width: 900px;
     text-align: center;
 }
 
+/* 🪵 Holz Button Style */
 button {
     padding: 14px 28px;
     font-size: 18px;
     border: none;
-    border-radius: 12px;
-    background: #1b2440;
+    border-radius: 14px;
+
+    background: linear-gradient(#b07a3a, #8b5a2b);
     color: white;
     cursor: pointer;
+
+    box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+}
+
+button:active {
+    transform: scale(0.96);
 }
 </style>
-
 </head>
 
 <body>
 
+<!-- START SCREEN -->
 <div id="startScreen">
     <h1>Hallo! 👋</h1>
     <button id="startBtn">START</button>
@@ -128,26 +153,31 @@ button {
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
+// ---------------- STATE ----------------
 let started = false;
 let gameOver = false;
 
+// Start Button
 document.getElementById("startBtn").onclick = () => {
     started = true;
     document.getElementById("startScreen").style.display = "none";
 };
 
-document.getElementById("jumpBtn").addEventListener("mousedown", jump);
-document.addEventListener("keydown", e => {
-    if (e.code === "Space") jump();
-});
+// ---------------- PLAYER ----------------
+let player = {
+    x: 120,
+    y: 300,
+    w: 28,
+    h: 28,
+    vy: 0
+};
 
-// ---------------- WORLD ----------------
-let player = { x:120, y:300, w:28, h:28, vy:0 };
 let gravity = 1.1;
 let ground = 300;
 
 let obstacles = [];
 let clouds = [];
+
 let score = 0;
 let speed = 6;
 let time = 0;
@@ -158,6 +188,11 @@ function jump() {
     if (player.y >= ground) player.vy = -15;
 }
 
+document.getElementById("jumpBtn").addEventListener("mousedown", jump);
+document.addEventListener("keydown", e => {
+    if (e.code === "Space") jump();
+});
+
 // ---------------- SPAWN ----------------
 setInterval(() => {
     if (started && !gameOver) {
@@ -167,7 +202,11 @@ setInterval(() => {
 
 setInterval(() => {
     if (started && !gameOver) {
-        clouds.push({ x:900, y:Math.random()*120+20, s:30+Math.random()*30 });
+        clouds.push({
+            x:900,
+            y:Math.random()*120+20,
+            s:30+Math.random()*30
+        });
     }
 }, 4000);
 
@@ -260,7 +299,8 @@ function update(){
     for(let o of obstacles) o.x-=speed;
 
     score++;
-    document.getElementById("score").innerText="Score: "+Math.floor(score/10);
+    document.getElementById("score").innerText =
+        "Score: "+Math.floor(score/10);
 
     if(score%200===0) speed+=0.5;
 
@@ -340,4 +380,4 @@ loop();
 </html>
 """
 
-components.html(game_html, height=650)
+components.html(game_html, height=700)
