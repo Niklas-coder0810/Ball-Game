@@ -3,7 +3,7 @@ import streamlit.components.v1 as components
 
 st.set_page_config(page_title="Forest Runner", layout="wide")
 
-st.title("🌙 Forest Runner – Night Edition")
+st.title("🌙 Forest Runner – Night Evolution")
 
 game_html = """
 <!DOCTYPE html>
@@ -11,39 +11,40 @@ game_html = """
 <head>
 <meta charset="utf-8"/>
 <style>
-    body { margin: 0; overflow: hidden; background: #0b1020; }
+    body {
+        margin: 0;
+        overflow: hidden;
+        background: #070b18;
+    }
 
     canvas {
         display: block;
         margin: auto;
-        background: linear-gradient(#050814, #0b1020);
+        background: linear-gradient(#04060f, #0b1020);
         border-radius: 12px;
     }
 
     #ui {
         position: absolute;
-        width: 100%;
         bottom: 20px;
+        width: 100%;
         text-align: center;
-        font-family: Arial;
     }
 
     button {
         font-size: 18px;
-        padding: 12px 20px;
-        margin: 8px;
+        padding: 14px 28px;
+        margin: 10px;
         border-radius: 14px;
         border: none;
         cursor: pointer;
-        background: #1f2a44;
+        background: #1b2440;
         color: white;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.4);
-        transition: 0.2s;
+        box-shadow: 0 6px 12px rgba(0,0,0,0.4);
     }
 
     button:active {
         transform: scale(0.95);
-        background: #2d3c63;
     }
 
     #score {
@@ -57,11 +58,11 @@ game_html = """
 
     #gameover {
         position: absolute;
-        top: 40%;
+        top: 35%;
         width: 100%;
         text-align: center;
         color: white;
-        font-size: 60px;
+        font-size: 64px;
         display: none;
         font-weight: bold;
         animation: drop 0.8s ease-out;
@@ -70,12 +71,12 @@ game_html = """
     #restart {
         display: none;
         position: absolute;
-        top: 55%;
+        top: 52%;
         left: 50%;
         transform: translateX(-50%);
-        padding: 15px 30px;
+        padding: 16px 32px;
         font-size: 20px;
-        background: #ffcc00;
+        background: #ffd54a;
         color: black;
         border-radius: 12px;
     }
@@ -91,13 +92,11 @@ game_html = """
 <canvas id="game" width="900" height="420"></canvas>
 
 <div id="score">Score: 0</div>
-
 <div id="gameover">GAME OVER</div>
 <button id="restart" onclick="resetGame()">Neustart</button>
 
 <div id="ui">
-    <button onmousedown="jump()">⬆ Springen</button>
-    <button onmousedown="duck(true)" onmouseup="duck(false)">⬇ Ducken</button>
+    <button onmousedown="jump()">⬆ SPRINGEN</button>
 </div>
 
 <script>
@@ -106,14 +105,14 @@ const ctx = canvas.getContext("2d");
 
 let score = 0;
 let gameOver = false;
+let speed = 6;
 
 let player = {
     x: 120,
     y: 300,
-    w: 30,
-    h: 30,
-    vy: 0,
-    ducking: false
+    w: 28,
+    h: 28,
+    vy: 0
 };
 
 let gravity = 1.1;
@@ -127,37 +126,56 @@ function jump() {
     }
 }
 
-function duck(state) {
-    player.ducking = state;
-}
-
 function spawnObstacle() {
     if (gameOver) return;
 
-    let type = Math.random() > 0.5 ? "log" : "highlog";
+    let type = Math.random() > 0.5 ? "log" : "logHigh";
 
     obstacles.push({
         x: 900,
         y: type === "log" ? 320 : 260,
         w: 40,
-        h: 40,
-        type: type
+        h: 40
     });
 }
 
-setInterval(spawnObstacle, 1800);
+setInterval(spawnObstacle, 1700);
 
-function drawBackground() {
-    // night sky stars
-    ctx.fillStyle = "#ffffff";
-    for (let i = 0; i < 40; i++) {
-        ctx.fillRect(Math.random()*900, Math.random()*200, 2, 2);
-    }
+function drawMoon() {
+    ctx.fillStyle = "#f5f3ce";
+    ctx.beginPath();
+    ctx.arc(750, 80, 40, 0, Math.PI * 2);
+    ctx.fill();
 
-    // forest silhouettes
-    ctx.fillStyle = "#0a1a10";
+    ctx.fillStyle = "#070b18";
+    ctx.beginPath();
+    ctx.arc(770, 70, 35, 0, Math.PI * 2);
+    ctx.fill();
+}
+
+function drawTrees() {
+    ctx.fillStyle = "#050a12";
     for (let i = 0; i < 20; i++) {
-        ctx.fillRect(i * 50, 320, 30, 100);
+        ctx.fillRect(i * 60, 250, 20, 170);
+        ctx.beginPath();
+        ctx.arc(i * 60 + 10, 250, 30, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
+function drawGround() {
+    ctx.fillStyle = "#1a1f2e";
+    ctx.fillRect(0, 340, 900, 80);
+
+    ctx.fillStyle = "#0e1422";
+    for (let i = 0; i < 30; i++) {
+        ctx.fillRect(i * 30, 340, 15, 80);
+    }
+}
+
+function updateDifficulty() {
+    if (score % 200 === 0 && score > 0) {
+        speed += 0.5;
     }
 }
 
@@ -174,22 +192,20 @@ function update() {
     }
 
     for (let o of obstacles) {
-        o.x -= 6;
+        o.x -= speed;
     }
 
-    // score
     score++;
-    document.getElementById("score").innerText = "Score: " + Math.floor(score/10);
+    document.getElementById("score").innerText = "Score: " + Math.floor(score / 10);
 
-    // collision
+    updateDifficulty();
+
     for (let o of obstacles) {
-        let ph = player.ducking ? 15 : player.h;
-
         if (
             player.x < o.x + o.w &&
             player.x + player.w > o.x &&
             player.y < o.y + o.h &&
-            player.y + ph > o.y
+            player.y + player.h > o.y
         ) {
             endGame();
         }
@@ -199,26 +215,24 @@ function update() {
 }
 
 function drawPlayer() {
-    ctx.fillStyle = "#f1c40f";
-    let ph = player.ducking ? 15 : player.h;
-    ctx.fillRect(player.x, player.y, player.w, ph);
+    ctx.fillStyle = "#ffd54a";
+    ctx.fillRect(player.x, player.y, player.w, player.h);
 
-    // eyes 👀
+    // eyes
     ctx.fillStyle = "black";
-    ctx.fillRect(player.x + 6, player.y + 8, 4, 4);
-    ctx.fillRect(player.x + 18, player.y + 8, 4, 4);
+    ctx.fillRect(player.x + 6, player.y + 8, 3, 3);
+    ctx.fillRect(player.x + 16, player.y + 8, 3, 3);
 }
 
 function drawObstacles() {
     for (let o of obstacles) {
-        ctx.fillStyle = "#8b5a2b";
+        ctx.fillStyle = "#7a4a1f";
         ctx.fillRect(o.x, o.y, o.w, o.h);
 
-        // wood texture lines
-        ctx.strokeStyle = "#5c3b1a";
+        ctx.strokeStyle = "#4b2e12";
         ctx.beginPath();
-        ctx.moveTo(o.x, o.y+10);
-        ctx.lineTo(o.x+40, o.y+10);
+        ctx.moveTo(o.x, o.y + 10);
+        ctx.lineTo(o.x + 40, o.y + 10);
         ctx.stroke();
     }
 }
@@ -226,7 +240,9 @@ function drawObstacles() {
 function draw() {
     ctx.clearRect(0, 0, 900, 420);
 
-    drawBackground();
+    drawMoon();
+    drawTrees();
+    drawGround();
     drawPlayer();
     drawObstacles();
 }
@@ -245,6 +261,7 @@ function endGame() {
 
 function resetGame() {
     score = 0;
+    speed = 6;
     gameOver = false;
     obstacles = [];
     player.y = ground;
