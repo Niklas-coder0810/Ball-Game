@@ -1,9 +1,9 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="Forest Runner", layout="wide")
+st.set_page_config(page_title="Forest Runner Ultimate", layout="wide")
 
-st.title("🌍 Forest Runner – Wood UI Edition")
+st.title("🌍 Forest Runner – Ultimate Complete Edition")
 
 game_html = """
 <!DOCTYPE html>
@@ -16,8 +16,6 @@ body {
     margin: 0;
     overflow: hidden;
     font-family: Arial;
-
-    /* 🪵 Holz Hintergrund außerhalb des Spiels */
     background: linear-gradient(135deg, #c89b63, #e3c08a);
 }
 
@@ -26,9 +24,8 @@ canvas {
     display: block;
     margin: auto;
     border-radius: 12px;
-
     box-shadow:
-        0 20px 50px rgba(0,0,0,0.35),
+        0 20px 50px rgba(0,0,0,0.4),
         inset 0 0 0 6px #8b5a2b;
 }
 
@@ -62,20 +59,19 @@ canvas {
     cursor: pointer;
 }
 
-/* ---------------- SCORE ---------------- */
-#score {
+/* ---------------- UI ---------------- */
+#score, #level {
     position: absolute;
     top: 10px;
-    left: 20px;
-    font-size: 20px;
     color: white;
-
-    background: rgba(139, 90, 43, 0.6);
+    background: rgba(0,0,0,0.4);
     padding: 6px 12px;
     border-radius: 8px;
 }
 
-/* ---------------- GAME OVER ---------------- */
+#score { left: 20px; }
+#level { right: 20px; }
+
 #gameover {
     position: absolute;
     top: 35%;
@@ -86,7 +82,6 @@ canvas {
     display: none;
 }
 
-/* ---------------- RESTART ---------------- */
 #restart {
     position: absolute;
     top: 52%;
@@ -101,7 +96,7 @@ canvas {
     background: #ffd54a;
 }
 
-/* ---------------- UI (BUTTON POSITION FIX) ---------------- */
+/* ---------------- BUTTON ---------------- */
 #ui {
     position: absolute;
     top: 460px;
@@ -111,22 +106,14 @@ canvas {
     text-align: center;
 }
 
-/* 🪵 Holz Button Style */
 button {
-    padding: 14px 28px;
-    font-size: 18px;
-    border: none;
+    padding: 16px 32px;
+    font-size: 20px;
     border-radius: 14px;
-
+    border: none;
     background: linear-gradient(#b07a3a, #8b5a2b);
     color: white;
     cursor: pointer;
-
-    box-shadow: 0 6px 12px rgba(0,0,0,0.3);
-}
-
-button:active {
-    transform: scale(0.96);
 }
 </style>
 </head>
@@ -142,6 +129,8 @@ button:active {
 <canvas id="game" width="900" height="420"></canvas>
 
 <div id="score">Score: 0</div>
+<div id="level">Level: 1</div>
+
 <div id="gameover">GAME OVER</div>
 <button id="restart" onclick="resetGame()">Neustart</button>
 
@@ -149,118 +138,130 @@ button:active {
     <button id="jumpBtn">⬆ SPRINGEN</button>
 </div>
 
+<!-- 🔊 SOUNDS -->
+<audio id="jumpSound" src="https://www.soundjay.com/button/beep-07.wav"></audio>
+<audio id="gameOverSound" src="https://www.soundjay.com/misc/sounds/fail-buzzer-01.wav"></audio>
+
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-// ---------------- STATE ----------------
+/* ---------------- STATE ---------------- */
 let started = false;
 let gameOver = false;
 
-// Start Button
+/* ---------------- START ---------------- */
 document.getElementById("startBtn").onclick = () => {
     started = true;
     document.getElementById("startScreen").style.display = "none";
 };
 
-// ---------------- PLAYER ----------------
-let player = {
-    x: 120,
-    y: 300,
-    w: 28,
-    h: 28,
-    vy: 0
-};
-
+/* ---------------- PLAYER ---------------- */
+let player = { x:120, y:300, w:28, h:28, vy:0 };
 let gravity = 1.1;
 let ground = 300;
 
+/* ---------------- WORLD ---------------- */
 let obstacles = [];
 let clouds = [];
+let birds = [];
+let powerups = [];
 
 let score = 0;
+let level = 1;
 let speed = 6;
 let time = 0;
 
-// ---------------- INPUT ----------------
-function jump() {
-    if (!started || gameOver) return;
-    if (player.y >= ground) player.vy = -15;
+/* ---------------- HIGH SCORE ---------------- */
+let highscore = localStorage.getItem("highscore") || 0;
+
+/* ---------------- INPUT ---------------- */
+function jump(){
+    if(!started || gameOver) return;
+    if(player.y >= ground){
+        player.vy = -15;
+        document.getElementById("jumpSound").play();
+    }
 }
 
-document.getElementById("jumpBtn").addEventListener("mousedown", jump);
+document.getElementById("jumpBtn").onclick = jump;
 document.addEventListener("keydown", e => {
-    if (e.code === "Space") jump();
+    if(e.code==="Space") jump();
 });
 
-// ---------------- SPAWN ----------------
+/* ---------------- SPAWNS ---------------- */
 setInterval(() => {
-    if (started && !gameOver) {
-        obstacles.push({ x:900, y:320, w:40, h:40 });
+    if(started && !gameOver){
+        obstacles.push({x:900,y:320,w:40,h:40});
     }
-}, 1700);
+}, 1500);
 
 setInterval(() => {
-    if (started && !gameOver) {
-        clouds.push({
-            x:900,
-            y:Math.random()*120+20,
-            s:30+Math.random()*30
-        });
+    if(started && !gameOver){
+        clouds.push({x:900,y:Math.random()*120+20,s:30+Math.random()*30});
     }
 }, 4000);
 
-// ---------------- PHASE ----------------
-function getPhase() {
+setInterval(() => {
+    if(!gameOver){
+        birds.push({x:900,y:Math.random()*150+50});
+    }
+}, 5000);
+
+setInterval(() => {
+    if(!gameOver){
+        powerups.push({
+            x:900,
+            y:250,
+            type: Math.random()>0.5 ? "shield" : "speed"
+        });
+    }
+}, 8000);
+
+/* ---------------- PHASE ---------------- */
+function getPhase(){
     let t = time % 60;
-    if (t < 20) return 0;
-    if (t < 30) return 1;
-    if (t < 50) return 2;
+    if(t<20) return 0;
+    if(t<30) return 1;
+    if(t<50) return 2;
     return 3;
 }
 
-// ---------------- SKY ----------------
-function drawSky(p) {
+/* ---------------- DRAW SKY ---------------- */
+function drawSky(p){
     let g = ctx.createLinearGradient(0,0,0,420);
 
-    if (p===0){ g.addColorStop(0,"#02030a"); g.addColorStop(1,"#050817"); }
-    if (p===1){ g.addColorStop(0,"#1b2a4a"); g.addColorStop(1,"#ff9a6a"); }
-    if (p===2){ g.addColorStop(0,"#87ceeb"); g.addColorStop(1,"#e0f6ff"); }
-    if (p===3){ g.addColorStop(0,"#ffb36b"); g.addColorStop(1,"#1b1e3a"); }
+    if(p===0){ g.addColorStop(0,"#02030a"); g.addColorStop(1,"#050817"); }
+    if(p===1){ g.addColorStop(0,"#1b2a4a"); g.addColorStop(1,"#ff9a6a"); }
+    if(p===2){ g.addColorStop(0,"#87ceeb"); g.addColorStop(1,"#e0f6ff"); }
+    if(p===3){ g.addColorStop(0,"#ffb36b"); g.addColorStop(1,"#1b1e3a"); }
 
-    ctx.fillStyle = g;
+    ctx.fillStyle=g;
     ctx.fillRect(0,0,900,420);
 }
 
-// ---------------- SUN / MOON ----------------
-function drawSunMoon(p) {
+/* ---------------- SUN / MOON ---------------- */
+function drawSunMoon(p){
     ctx.beginPath();
-
-    if (p===2||p===1){
-        ctx.fillStyle="#ffd84d";
-        ctx.arc(750,80,35,0,Math.PI*2);
-    } else {
-        ctx.fillStyle="#dcdcdc";
-        ctx.arc(750,80,30,0,Math.PI*2);
-    }
-
+    ctx.fillStyle = (p===2||p===1) ? "#ffd84d" : "#dcdcdc";
+    ctx.arc(750,80,30,0,Math.PI*2);
     ctx.fill();
 }
 
-// ---------------- STARS ----------------
-function drawStars(p) {
-    if (p!==0) return;
+/* ---------------- STARS ---------------- */
+function drawStars(p){
+    if(p!==0) return;
     ctx.fillStyle="white";
     for(let i=0;i<60;i++){
         ctx.fillRect(Math.random()*900,Math.random()*200,2,2);
     }
 }
 
-// ---------------- TREES ----------------
-function drawTrees(p) {
+/* ---------------- TREES ---------------- */
+function drawTrees(p){
     for(let i=0;i<18;i++){
         let x=i*60;
-        ctx.fillStyle = (p===0) ? "#05070c" : "#1f3b2a";
+        ctx.fillStyle=(p===0)?"#05070c":"#1f3b2a";
         ctx.fillRect(x,260,20,160);
         ctx.beginPath();
         ctx.arc(x+10,260,30,0,Math.PI*2);
@@ -268,13 +269,13 @@ function drawTrees(p) {
     }
 }
 
-// ---------------- GROUND ----------------
+/* ---------------- GROUND ---------------- */
 function drawGround(){
     ctx.fillStyle="#1a1f2e";
     ctx.fillRect(0,340,900,80);
 }
 
-// ---------------- CLOUDS ----------------
+/* ---------------- ENTITIES ---------------- */
 function drawClouds(){
     ctx.fillStyle="rgba(255,255,255,0.7)";
     for(let c of clouds){
@@ -286,7 +287,25 @@ function drawClouds(){
     clouds = clouds.filter(c=>c.x>-100);
 }
 
-// ---------------- UPDATE ----------------
+function drawBirds(){
+    ctx.fillStyle="black";
+    for(let b of birds){
+        ctx.fillRect(b.x,b.y,5,3);
+        b.x -= 2;
+    }
+    birds = birds.filter(b=>b.x>-100);
+}
+
+function drawPowerups(){
+    for(let p of powerups){
+        ctx.fillStyle = (p.type==="shield")?"cyan":"orange";
+        ctx.fillRect(p.x,p.y,20,20);
+        p.x -= speed;
+    }
+    powerups = powerups.filter(p=>p.x>-100);
+}
+
+/* ---------------- UPDATE ---------------- */
 function update(){
     if(!started||gameOver) return;
 
@@ -299,26 +318,39 @@ function update(){
     for(let o of obstacles) o.x-=speed;
 
     score++;
+    level = Math.floor(score/500)+1;
+    speed = 6 + level*0.5;
+
     document.getElementById("score").innerText =
         "Score: "+Math.floor(score/10);
 
-    if(score%200===0) speed+=0.5;
+    document.getElementById("level").innerText =
+        "Level: "+level;
 
     for(let o of obstacles){
-        if(
-            player.x<o.x+o.w &&
-            player.x+player.w>o.x &&
-            player.y<o.y+o.h &&
-            player.y+player.h>o.y
-        ){
-            endGame();
+        if(hit(o)) endGame();
+    }
+
+    for(let p of powerups){
+        if(hit(p)){
+            p.collected=true;
+            if(p.type==="speed") speed+=1;
         }
     }
 
     obstacles = obstacles.filter(o=>o.x>-100);
+    powerups = powerups.filter(p=>!p.collected);
 }
 
-// ---------------- DRAW ----------------
+/* ---------------- COLLISION ---------------- */
+function hit(o){
+    return player.x<o.x+o.w &&
+           player.x+player.w>o.x &&
+           player.y<o.y+o.h &&
+           player.y+player.h>o.y;
+}
+
+/* ---------------- DRAW ---------------- */
 function drawPlayer(){
     ctx.fillStyle="#ffd54a";
     ctx.fillRect(player.x,player.y,player.w,player.h);
@@ -330,32 +362,30 @@ function drawPlayer(){
 
 function drawObstacles(){
     ctx.fillStyle="#7a4a1f";
-    for(let o of obstacles) ctx.fillRect(o.x,o.y,o.w,o.h);
+    for(let o of obstacles){
+        ctx.fillRect(o.x,o.y,o.w,o.h);
+    }
 }
 
-// ---------------- GAME OVER ----------------
+/* ---------------- GAME OVER ---------------- */
 function endGame(){
     gameOver=true;
+    document.getElementById("gameOverSound").play();
+
+    if(score>highscore){
+        localStorage.setItem("highscore",score);
+    }
+
     document.getElementById("gameover").style.display="block";
     document.getElementById("restart").style.display="block";
 }
 
+/* ---------------- RESET ---------------- */
 function resetGame(){
-    started=false;
-    gameOver=false;
-    score=0;
-    speed=6;
-    obstacles=[];
-    clouds=[];
-    player.y=ground;
-    player.vy=0;
-
-    document.getElementById("gameover").style.display="none";
-    document.getElementById("restart").style.display="none";
-    document.getElementById("startScreen").style.display="flex";
+    location.reload();
 }
 
-// ---------------- LOOP ----------------
+/* ---------------- LOOP ---------------- */
 function loop(){
     let p=getPhase();
 
@@ -364,7 +394,9 @@ function loop(){
     drawSunMoon(p);
     drawTrees(p);
     drawClouds();
+    drawBirds();
     drawGround();
+    drawPowerups();
 
     update();
     drawPlayer();
@@ -380,4 +412,4 @@ loop();
 </html>
 """
 
-components.html(game_html, height=700)
+components.html(game_html, height=750)
