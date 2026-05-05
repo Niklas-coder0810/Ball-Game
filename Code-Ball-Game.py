@@ -1,9 +1,9 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="Runner Game Multi Mode", layout="wide")
+st.set_page_config(page_title="Runner Ultimate+", layout="wide")
 
-st.title("🌍 Runner Game – Forest + Beach (Safe Version)")
+st.title("🌍 Runner Ultimate+ (Forest & Beach + Custom Cube)")
 
 game_html = """
 <!DOCTYPE html>
@@ -39,21 +39,24 @@ canvas {
     color: white;
     display: flex;
     flex-direction: column;
-    justify-content: center;
     align-items: center;
+    justify-content: center;
     z-index: 10;
     border-radius: 12px;
 }
 
-.menuBtn {
-    padding: 14px 28px;
-    font-size: 18px;
+.menuRow {
     margin: 10px;
-    border-radius: 12px;
-    border: none;
+}
+
+/* ---------------- COLOR SELECT ---------------- */
+.colorBtn {
+    width: 30px;
+    height: 30px;
+    margin: 4px;
+    border-radius: 50%;
+    border: 2px solid white;
     cursor: pointer;
-    background: linear-gradient(#b07a3a, #8b5a2b);
-    color: white;
 }
 
 /* ---------------- UI ---------------- */
@@ -92,7 +95,6 @@ canvas {
     background: #ffd54a;
 }
 
-/* ---------------- BUTTON ---------------- */
 #ui {
     position: absolute;
     top: 460px;
@@ -112,15 +114,29 @@ button {
     cursor: pointer;
 }
 </style>
+
 </head>
 
 <body>
 
 <!-- MENU -->
 <div id="menu">
-    <h1>Hallo 👋 Wähle Modus</h1>
-    <button class="menuBtn" onclick="startGame('forest')">🌲 Forest Run</button>
-    <button class="menuBtn" onclick="startGame('beach')">🏖 Beach Run</button>
+    <h1>🎮 Wähle Modus & Farbe</h1>
+
+    <div class="menuRow">
+        <button onclick="start('forest')">🌲 Forest Run</button>
+        <button onclick="start('beach')">🏖 Beach Run</button>
+    </div>
+
+    <div class="menuRow">
+        <div onclick="setColor('yellow')" class="colorBtn" style="background:yellow"></div>
+        <div onclick="setColor('red')" class="colorBtn" style="background:red"></div>
+        <div onclick="setColor('green')" class="colorBtn" style="background:green"></div>
+        <div onclick="setColor('blue')" class="colorBtn" style="background:blue"></div>
+        <div onclick="setColor('pink')" class="colorBtn" style="background:pink"></div>
+        <div onclick="setColor('violet')" class="colorBtn" style="background:violet"></div>
+        <div onclick="setColor('brown')" class="colorBtn" style="background:brown"></div>
+    </div>
 </div>
 
 <canvas id="game" width="900" height="420"></canvas>
@@ -132,87 +148,78 @@ button {
 <button id="restart" onclick="resetGame()">Neustart</button>
 
 <div id="ui">
-    <button id="jumpBtn">⬆ SPRINGEN</button>
+    <button onclick="jump()">⬆ SPRINGEN</button>
 </div>
 
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-/* ---------------- STATE ---------------- */
 let mode = "forest";
+let cubeColor = "yellow";
+
 let started = false;
 let gameOver = false;
 
-/* ---------------- PLAYER (UNCHANGED CORE) ---------------- */
 let player = {x:120,y:300,w:28,h:28,vy:0};
-let gravity = 1.1;
-let ground = 300;
 
-/* ---------------- WORLD ---------------- */
 let obstacles = [];
 let score = 0;
 let level = 1;
 let speed = 6;
 let time = 0;
 
-/* ---------------- START ---------------- */
-function startGame(m){
+/* ---------------- MENU ---------------- */
+function start(m){
     mode = m;
     started = true;
-    document.getElementById("menu").style.display = "none";
+    document.getElementById("menu").style.display="none";
 }
 
-/* ---------------- INPUT (UNCHANGED) ---------------- */
+function setColor(c){
+    cubeColor = c;
+}
+
+/* ---------------- INPUT ---------------- */
 function jump(){
     if(!started||gameOver) return;
-    if(player.y>=ground){
-        player.vy = -15;
-    }
+    if(player.y>=300) player.vy=-15;
 }
 
-document.getElementById("jumpBtn").onclick = jump;
-document.addEventListener("keydown",e=>{
-    if(e.code==="Space") jump();
-});
-
-/* ---------------- SPAWN (UNCHANGED) ---------------- */
+/* ---------------- SPAWN ---------------- */
 setInterval(()=>{
     if(started && !gameOver){
         obstacles.push({x:900,y:320,w:40,h:40});
     }
 },1500);
 
-/* ---------------- UPDATE (UNCHANGED CORE) ---------------- */
+/* ---------------- UPDATE ---------------- */
 function update(){
     if(!started||gameOver) return;
 
-    time += 0.02;
+    time+=0.02;
 
-    player.y += player.vy;
-    if(player.y < ground) player.vy += gravity;
-    else { player.y = ground; player.vy = 0; }
+    player.y+=player.vy;
+    if(player.y<300) player.vy+=1.1;
+    else {player.y=300;player.vy=0;}
 
-    for(let o of obstacles) o.x -= speed;
+    for(let o of obstacles) o.x-=speed;
 
     score++;
-    level = Math.floor(score/500)+1;
-    speed = 6 + level*0.5;
+    level=Math.floor(score/500)+1;
+    speed=6+level*0.5;
 
-    document.getElementById("score").innerText =
-        "Score: " + Math.floor(score/10);
-
-    document.getElementById("level").innerText =
-        "Level: " + level;
-
-    for(let o of obstacles){
-        if(hit(o)) endGame();
-    }
+    document.getElementById("score").innerText="Score: "+Math.floor(score/10);
+    document.getElementById("level").innerText="Level: "+level;
 
     obstacles = obstacles.filter(o=>o.x>-100);
+
+    for(let o of obstacles){
+        if(hit(o)) gameOver=true;
+    }
 }
 
-/* ---------------- COLLISION ---------------- */
+/* ---------------- HIT ---------------- */
 function hit(o){
     return player.x<o.x+o.w &&
            player.x+player.w>o.x &&
@@ -224,15 +231,10 @@ function hit(o){
 function draw(){
     ctx.clearRect(0,0,900,420);
 
-    if(mode==="forest"){
-        drawForest();
-    } else {
-        drawBeach();
-    }
+    if(mode==="forest") drawForest();
+    else drawBeach();
 
-    drawGround();
-
-    ctx.fillStyle="#ffd54a";
+    ctx.fillStyle=cubeColor;
     ctx.fillRect(player.x,player.y,player.w,player.h);
 
     ctx.fillStyle="#7a4a1f";
@@ -241,53 +243,57 @@ function draw(){
     }
 }
 
-/* ---------------- FOREST (UNCHANGED LOOK STYLE) ---------------- */
+/* ---------------- FOREST + NIGHT/DAY ---------------- */
 function drawForest(){
-    ctx.fillStyle="#87ceeb";
+    let phase = Math.floor((time%60)/20);
+
+    if(phase===0) ctx.fillStyle="#050817"; // night
+    else ctx.fillStyle="#87ceeb";
+
     ctx.fillRect(0,0,900,420);
 
-    ctx.fillStyle="#1f3b2a";
+    // trees FIXED
     for(let i=0;i<18;i++){
         let x=i*60;
+        ctx.fillStyle = (phase===0) ? "#0b0f14" : "#1f3b2a";
         ctx.fillRect(x,260,20,160);
+        ctx.beginPath();
+        ctx.arc(x+10,260,25,0,Math.PI*2);
+        ctx.fill();
     }
 }
 
-/* ---------------- BEACH (NEW MODE ONLY ADDED) ---------------- */
+/* ---------------- BEACH + WAVES + SUN FACE ---------------- */
 function drawBeach(){
-    // sky
+
     ctx.fillStyle="#87ceeb";
     ctx.fillRect(0,0,900,220);
 
-    // sea
+    // sun with face
+    ctx.fillStyle="yellow";
+    ctx.beginPath();
+    ctx.arc(750,80,35,0,Math.PI*2);
+    ctx.fill();
+
+    ctx.fillStyle="black";
+    ctx.fillRect(740,75,5,5);
+    ctx.fillRect(760,75,5,5);
+
+    // smile
+    ctx.beginPath();
+    ctx.arc(750,85,10,0,Math.PI);
+    ctx.stroke();
+
+    // waves animation
     ctx.fillStyle="#1e90ff";
-    ctx.fillRect(0,220,900,100);
+    for(let i=0;i<900;i+=40){
+        let wave = Math.sin((time*5)+(i*0.02))*5;
+        ctx.fillRect(i,220+wave,40,100);
+    }
 
     // sand
     ctx.fillStyle="#f4d03f";
     ctx.fillRect(0,320,900,100);
-}
-
-/* ---------------- GROUND ---------------- */
-function drawGround(){
-    if(mode==="forest"){
-        ctx.fillStyle="#1a1f2e";
-    } else {
-        ctx.fillStyle="#f4d03f";
-    }
-    ctx.fillRect(0,340,900,80);
-}
-
-/* ---------------- GAME OVER ---------------- */
-function endGame(){
-    gameOver=true;
-    document.getElementById("gameover").style.display="block";
-    document.getElementById("restart").style.display="block";
-}
-
-/* ---------------- RESET ---------------- */
-function resetGame(){
-    location.reload();
 }
 
 /* ---------------- LOOP ---------------- */
