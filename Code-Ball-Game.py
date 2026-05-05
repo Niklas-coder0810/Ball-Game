@@ -3,7 +3,7 @@ import streamlit.components.v1 as components
 
 st.set_page_config(page_title="Forest Runner", layout="wide")
 
-st.title("🌙 Forest Runner – Night Evolution")
+st.title("🌍 Forest Runner – Day & Night Cycle")
 
 game_html = """
 <!DOCTYPE html>
@@ -14,14 +14,41 @@ game_html = """
     body {
         margin: 0;
         overflow: hidden;
-        background: #070b18;
     }
 
     canvas {
         display: block;
         margin: auto;
-        background: linear-gradient(#04060f, #0b1020);
         border-radius: 12px;
+    }
+
+    #score {
+        position: absolute;
+        top: 10px;
+        left: 20px;
+        font-size: 20px;
+        color: white;
+        font-family: Arial;
+    }
+
+    #gameover {
+        position: absolute;
+        top: 35%;
+        width: 100%;
+        text-align: center;
+        font-size: 60px;
+        color: white;
+        display: none;
+    }
+
+    #restart {
+        position: absolute;
+        top: 52%;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 15px 30px;
+        font-size: 20px;
+        display: none;
     }
 
     #ui {
@@ -32,58 +59,13 @@ game_html = """
     }
 
     button {
-        font-size: 18px;
         padding: 14px 28px;
-        margin: 10px;
-        border-radius: 14px;
+        font-size: 18px;
         border: none;
-        cursor: pointer;
+        border-radius: 12px;
         background: #1b2440;
         color: white;
-        box-shadow: 0 6px 12px rgba(0,0,0,0.4);
-    }
-
-    button:active {
-        transform: scale(0.95);
-    }
-
-    #score {
-        position: absolute;
-        top: 10px;
-        left: 20px;
-        color: white;
-        font-size: 20px;
-        font-family: Arial;
-    }
-
-    #gameover {
-        position: absolute;
-        top: 35%;
-        width: 100%;
-        text-align: center;
-        color: white;
-        font-size: 64px;
-        display: none;
-        font-weight: bold;
-        animation: drop 0.8s ease-out;
-    }
-
-    #restart {
-        display: none;
-        position: absolute;
-        top: 52%;
-        left: 50%;
-        transform: translateX(-50%);
-        padding: 16px 32px;
-        font-size: 20px;
-        background: #ffd54a;
-        color: black;
-        border-radius: 12px;
-    }
-
-    @keyframes drop {
-        from { transform: translateY(-200px); opacity: 0; }
-        to { transform: translateY(0); opacity: 1; }
+        cursor: pointer;
     }
 </style>
 </head>
@@ -107,6 +89,23 @@ let score = 0;
 let gameOver = false;
 let speed = 6;
 
+// 🌍 TIME SYSTEM
+let time = 0;
+
+// Phasen
+// 0 = Nacht (20s)
+// 1 = Sunrise (10s)
+// 2 = Tag (20s)
+// 3 = Sunset (10s)
+
+function getPhase() {
+    let cycle = time % 60;
+    if (cycle < 20) return 0;
+    if (cycle < 30) return 1;
+    if (cycle < 50) return 2;
+    return 3;
+}
+
 let player = {
     x: 120,
     y: 300,
@@ -119,6 +118,7 @@ let gravity = 1.1;
 let ground = 300;
 
 let obstacles = [];
+let clouds = [];
 
 function jump() {
     if (player.y >= ground && !gameOver) {
@@ -129,11 +129,9 @@ function jump() {
 function spawnObstacle() {
     if (gameOver) return;
 
-    let type = Math.random() > 0.5 ? "log" : "logHigh";
-
     obstacles.push({
         x: 900,
-        y: type === "log" ? 320 : 260,
+        y: 320,
         w: 40,
         h: 40
     });
@@ -141,24 +139,79 @@ function spawnObstacle() {
 
 setInterval(spawnObstacle, 1700);
 
-function drawMoon() {
-    ctx.fillStyle = "#f5f3ce";
-    ctx.beginPath();
-    ctx.arc(750, 80, 40, 0, Math.PI * 2);
-    ctx.fill();
+// ☁️ clouds nur tagsüber
+function spawnCloud() {
+    clouds.push({
+        x: 900,
+        y: Math.random() * 120 + 20,
+        s: Math.random() * 40 + 40
+    });
+}
+setInterval(spawnCloud, 4000);
 
-    ctx.fillStyle = "#070b18";
-    ctx.beginPath();
-    ctx.arc(770, 70, 35, 0, Math.PI * 2);
-    ctx.fill();
+function drawSky(phase) {
+    let g = ctx.createLinearGradient(0, 0, 0, 420);
+
+    if (phase === 0) {
+        g.addColorStop(0, "#02030a");
+        g.addColorStop(1, "#050817");
+    }
+    if (phase === 1) {
+        g.addColorStop(0, "#1b2a4a");
+        g.addColorStop(1, "#3a4f7a");
+    }
+    if (phase === 2) {
+        g.addColorStop(0, "#87ceeb");
+        g.addColorStop(1, "#cfefff");
+    }
+    if (phase === 3) {
+        g.addColorStop(0, "#ffb36b");
+        g.addColorStop(1, "#2b2c4a");
+    }
+
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 900, 420);
 }
 
-function drawTrees() {
-    ctx.fillStyle = "#050a12";
-    for (let i = 0; i < 20; i++) {
-        ctx.fillRect(i * 60, 250, 20, 170);
+function drawSunMoon(phase) {
+    if (phase === 2 || phase === 1) {
+        // sun
+        ctx.fillStyle = "#ffd84d";
         ctx.beginPath();
-        ctx.arc(i * 60 + 10, 250, 30, 0, Math.PI * 2);
+        ctx.arc(750, 80, 35, 0, Math.PI * 2);
+        ctx.fill();
+    } else {
+        // moon
+        ctx.fillStyle = "#e8e8e8";
+        ctx.beginPath();
+        ctx.arc(750, 80, 30, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
+function drawStars(phase) {
+    if (phase !== 0) return;
+
+    ctx.fillStyle = "white";
+    for (let i = 0; i < 60; i++) {
+        ctx.fillRect(Math.random()*900, Math.random()*200, 2, 2);
+    }
+}
+
+function drawTrees(phase) {
+    for (let i = 0; i < 20; i++) {
+
+        let x = i * 60;
+
+        if (phase === 0) {
+            ctx.fillStyle = "#05070c"; // shadow trees
+        } else {
+            ctx.fillStyle = "#1f3b2a"; // visible trees
+        }
+
+        ctx.fillRect(x, 260, 20, 160);
+        ctx.beginPath();
+        ctx.arc(x + 10, 260, 30, 0, Math.PI * 2);
         ctx.fill();
     }
 }
@@ -166,39 +219,36 @@ function drawTrees() {
 function drawGround() {
     ctx.fillStyle = "#1a1f2e";
     ctx.fillRect(0, 340, 900, 80);
-
-    ctx.fillStyle = "#0e1422";
-    for (let i = 0; i < 30; i++) {
-        ctx.fillRect(i * 30, 340, 15, 80);
-    }
 }
 
-function updateDifficulty() {
-    if (score % 200 === 0 && score > 0) {
-        speed += 0.5;
+function drawClouds() {
+    ctx.fillStyle = "rgba(255,255,255,0.7)";
+    for (let c of clouds) {
+        ctx.beginPath();
+        ctx.arc(c.x, c.y, c.s, 0, Math.PI * 2);
+        ctx.fill();
+        c.x -= 1.5;
     }
+    clouds = clouds.filter(c => c.x > -100);
 }
 
 function update() {
     if (gameOver) return;
 
-    player.y += player.vy;
+    time += 0.02;
 
-    if (player.y < ground) {
-        player.vy += gravity;
-    } else {
+    player.y += player.vy;
+    if (player.y < ground) player.vy += gravity;
+    else {
         player.y = ground;
         player.vy = 0;
     }
 
-    for (let o of obstacles) {
-        o.x -= speed;
-    }
+    for (let o of obstacles) o.x -= speed;
 
     score++;
-    document.getElementById("score").innerText = "Score: " + Math.floor(score / 10);
-
-    updateDifficulty();
+    document.getElementById("score").innerText =
+        "Score: " + Math.floor(score/10);
 
     for (let o of obstacles) {
         if (
@@ -207,7 +257,9 @@ function update() {
             player.y < o.y + o.h &&
             player.y + player.h > o.y
         ) {
-            endGame();
+            gameOver = true;
+            document.getElementById("gameover").style.display = "block";
+            document.getElementById("restart").style.display = "block";
         }
     }
 
@@ -218,52 +270,40 @@ function drawPlayer() {
     ctx.fillStyle = "#ffd54a";
     ctx.fillRect(player.x, player.y, player.w, player.h);
 
-    // eyes
     ctx.fillStyle = "black";
     ctx.fillRect(player.x + 6, player.y + 8, 3, 3);
     ctx.fillRect(player.x + 16, player.y + 8, 3, 3);
 }
 
 function drawObstacles() {
+    ctx.fillStyle = "#7a4a1f";
     for (let o of obstacles) {
-        ctx.fillStyle = "#7a4a1f";
         ctx.fillRect(o.x, o.y, o.w, o.h);
-
-        ctx.strokeStyle = "#4b2e12";
-        ctx.beginPath();
-        ctx.moveTo(o.x, o.y + 10);
-        ctx.lineTo(o.x + 40, o.y + 10);
-        ctx.stroke();
     }
 }
 
-function draw() {
-    ctx.clearRect(0, 0, 900, 420);
+function loop() {
+    let phase = getPhase();
 
-    drawMoon();
-    drawTrees();
+    drawSky(phase);
+    drawStars(phase);
+    drawSunMoon(phase);
+    drawTrees(phase);
+    drawClouds();
     drawGround();
+
+    update();
     drawPlayer();
     drawObstacles();
-}
 
-function loop() {
-    update();
-    draw();
     requestAnimationFrame(loop);
-}
-
-function endGame() {
-    gameOver = true;
-    document.getElementById("gameover").style.display = "block";
-    document.getElementById("restart").style.display = "block";
 }
 
 function resetGame() {
     score = 0;
-    speed = 6;
     gameOver = false;
     obstacles = [];
+    clouds = [];
     player.y = ground;
     player.vy = 0;
 
