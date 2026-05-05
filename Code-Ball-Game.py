@@ -387,3 +387,117 @@ loop();
 """
 
 components.html(game_html, height=750)
+
+<button id="restartBtn" onclick="resetGame()">Neustart</button>
+
+#restartBtn{
+    position:absolute;
+    top:55%;
+    left:50%;
+    transform:translateX(-50%);
+    padding:14px 28px;
+    font-size:20px;
+    border-radius:12px;
+    border:none;
+    background:#ffd54a;
+    display:none;
+    cursor:pointer;
+}
+
+function resetGame(){
+
+    gameOver = false;
+    score = 0;
+    level = 1;
+    speed = 6;
+    obstacles = [];
+
+    player.y = ground;
+    player.vy = 0;
+
+    document.getElementById("gameover").style.display = "none";
+    document.getElementById("restartBtn").style.display = "none";
+}
+
+// ADD-ON: zeigt Restart Button zusätzlich
+setTimeout(()=>{
+    if(gameOver){
+        document.getElementById("restartBtn").style.display = "block";
+    }
+},100);
+
+<h3>Wähle deine Farbe</h3>
+
+<div id="colorPicker">
+    <div class="colorChoice" data-color="yellow" style="background:yellow"></div>
+    <div class="colorChoice" data-color="green" style="background:green"></div>
+    <div class="colorChoice" data-color="red" style="background:red"></div>
+    <div class="colorChoice" data-color="blue" style="background:blue"></div>
+    <div class="colorChoice" data-color="pink" style="background:pink"></div>
+</div>
+
+#colorPicker{
+    display:flex;
+    gap:10px;
+    margin-top:10px;
+}
+
+.colorChoice{
+    width:35px;
+    height:35px;
+    border-radius:50%;
+    cursor:pointer;
+    border:3px solid transparent;
+}
+
+.colorSelected{
+    border:3px solid white;
+    transform:scale(1.2);
+}
+
+let selectedColor = "yellow";
+
+document.querySelectorAll(".colorChoice").forEach(btn=>{
+    btn.onclick = () => {
+
+        // remove old selection
+        document.querySelectorAll(".colorChoice").forEach(b=>{
+            b.classList.remove("colorSelected");
+        });
+
+        // mark selected
+        btn.classList.add("colorSelected");
+
+        selectedColor = btn.dataset.color;
+
+        // direkt auf Player anwenden
+        player.color = selectedColor;
+    };
+});
+
+function drawExtraClouds(){
+
+    let phase = getDayPhase();
+
+    // Clouds jetzt IMMER sichtbar (leicht angepasst je Phase)
+    if(phase === "night"){
+        ctx.fillStyle = "rgba(200,200,255,0.2)";
+    }
+    else if(phase === "sunrise" || phase === "sunset"){
+        ctx.fillStyle = "rgba(255,200,150,0.5)";
+    }
+    else{
+        ctx.fillStyle = "white";
+    }
+
+    for(let i=0;i<6;i++){
+        let x = (i*180 + time*15) % 900;
+
+        ctx.beginPath();
+        ctx.arc(x,90,18,0,Math.PI*2);
+        ctx.arc(x+20,90,18,0,Math.PI*2);
+        ctx.fill();
+    }
+}
+
+drawExtraClouds();
