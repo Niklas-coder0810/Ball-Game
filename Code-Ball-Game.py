@@ -3,7 +3,7 @@ import streamlit.components.v1 as components
 
 st.set_page_config(page_title="Forest Runner", layout="wide")
 
-st.title("🌍 Forest Runner – Day & Night Cycle")
+st.title("🌍 Forest Runner – Start Menu Edition")
 
 game_html = """
 <!DOCTYPE html>
@@ -15,7 +15,7 @@ game_html = """
     body {
         margin: 0;
         overflow: hidden;
-        background: #000;
+        font-family: Arial;
     }
 
     canvas {
@@ -24,13 +24,46 @@ game_html = """
         border-radius: 12px;
     }
 
+    /* ---------------- START SCREEN ---------------- */
+    #startScreen {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(#0b1020, #05060c);
+        color: white;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 10;
+    }
+
+    #startScreen h1 {
+        font-size: 60px;
+        margin-bottom: 10px;
+    }
+
+    #startScreen p {
+        opacity: 0.7;
+        margin-bottom: 20px;
+    }
+
+    #startBtn {
+        padding: 15px 35px;
+        font-size: 20px;
+        border: none;
+        border-radius: 12px;
+        background: #ffd54a;
+        cursor: pointer;
+    }
+
+    /* ---------------- UI ---------------- */
     #score {
         position: absolute;
         top: 10px;
         left: 20px;
         font-size: 20px;
         color: white;
-        font-family: Arial;
     }
 
     #gameover {
@@ -41,7 +74,6 @@ game_html = """
         font-size: 60px;
         color: white;
         display: none;
-        font-weight: bold;
     }
 
     #restart {
@@ -53,8 +85,6 @@ game_html = """
         font-size: 20px;
         display: none;
         border-radius: 12px;
-        border: none;
-        cursor: pointer;
     }
 
     #ui {
@@ -78,6 +108,13 @@ game_html = """
 
 <body>
 
+<!-- START SCREEN -->
+<div id="startScreen">
+    <h1>Hallo! 👋</h1>
+    <p>Forest Runner starten</p>
+    <button id="startBtn">▶ START</button>
+</div>
+
 <canvas id="game" width="900" height="420"></canvas>
 
 <div id="score">Score: 0</div>
@@ -92,21 +129,17 @@ game_html = """
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-let score = 0;
+// ---------------- GAME STATE ----------------
+let started = false;
 let gameOver = false;
-let speed = 6;
 
-let time = 0;
+// ---------------- START GAME ----------------
+document.getElementById("startBtn").onclick = function() {
+    started = true;
+    document.getElementById("startScreen").style.display = "none";
+};
 
-// 🌗 Cycle: 60s total
-function getPhase() {
-    let t = time % 60;
-    if (t < 20) return 0;   // night
-    if (t < 30) return 1;   // sunrise
-    if (t < 50) return 2;   // day
-    return 3;               // sunset
-}
-
+// ---------------- PLAYER ----------------
 let player = {
     x: 120,
     y: 300,
@@ -120,29 +153,27 @@ let ground = 300;
 
 let obstacles = [];
 let clouds = [];
+let score = 0;
+let speed = 6;
+let time = 0;
 
 // ---------------- INPUT ----------------
-
 function jump() {
-    if (player.y >= ground && !gameOver) {
+    if (!started || gameOver) return;
+
+    if (player.y >= ground) {
         player.vy = -15;
     }
 }
 
 document.getElementById("jumpBtn").addEventListener("mousedown", jump);
-document.getElementById("jumpBtn").addEventListener("touchstart", function(e){
-    e.preventDefault();
-    jump();
-});
-
-document.addEventListener("keydown", function(e){
+document.addEventListener("keydown", e => {
     if (e.code === "Space") jump();
 });
 
 // ---------------- SPAWN ----------------
-
 function spawnObstacle() {
-    if (gameOver) return;
+    if (!started || gameOver) return;
 
     obstacles.push({
         x: 900,
@@ -151,128 +182,44 @@ function spawnObstacle() {
         h: 40
     });
 }
-
 setInterval(spawnObstacle, 1700);
 
-function spawnCloud() {
-    clouds.push({
-        x: 900,
-        y: Math.random() * 120 + 20,
-        s: Math.random() * 30 + 30
-    });
+// ---------------- SKY ----------------
+function getPhase() {
+    let t = time % 60;
+    if (t < 20) return 0;
+    if (t < 30) return 1;
+    if (t < 50) return 2;
+    return 3;
 }
-setInterval(spawnCloud, 4000);
 
-// ---------------- DRAW SKY ----------------
+function drawSky(p) {
+    let g = ctx.createLinearGradient(0,0,0,420);
 
-function drawSky(phase) {
-    let g = ctx.createLinearGradient(0, 0, 0, 420);
-
-    if (phase === 0) { // night
-        g.addColorStop(0, "#02030a");
-        g.addColorStop(1, "#050817");
-    }
-    if (phase === 1) { // sunrise
-        g.addColorStop(0, "#1b2a4a");
-        g.addColorStop(1, "#ff9a6a");
-    }
-    if (phase === 2) { // day
-        g.addColorStop(0, "#87ceeb");
-        g.addColorStop(1, "#e0f6ff");
-    }
-    if (phase === 3) { // sunset
-        g.addColorStop(0, "#ffb36b");
-        g.addColorStop(1, "#1b1e3a");
-    }
+    if (p === 0) { g.addColorStop(0,"#02030a"); g.addColorStop(1,"#050817"); }
+    if (p === 1) { g.addColorStop(0,"#1b2a4a"); g.addColorStop(1,"#ff9a6a"); }
+    if (p === 2) { g.addColorStop(0,"#87ceeb"); g.addColorStop(1,"#e0f6ff"); }
+    if (p === 3) { g.addColorStop(0,"#ffb36b"); g.addColorStop(1,"#1b1e3a"); }
 
     ctx.fillStyle = g;
-    ctx.fillRect(0, 0, 900, 420);
+    ctx.fillRect(0,0,900,420);
 }
 
-// ---------------- SUN / MOON ----------------
-
-function drawSunMoon(phase) {
-    ctx.beginPath();
-
-    if (phase === 2 || phase === 1) {
-        ctx.fillStyle = "#ffd84d"; // sun
-        ctx.arc(750, 80, 35, 0, Math.PI * 2);
-    } else {
-        ctx.fillStyle = "#dcdcdc"; // moon
-        ctx.arc(750, 80, 30, 0, Math.PI * 2);
-    }
-
-    ctx.fill();
-}
-
-// ---------------- STARS ----------------
-
-function drawStars(phase) {
-    if (phase !== 0) return;
-
-    ctx.fillStyle = "white";
-    for (let i = 0; i < 80; i++) {
-        ctx.fillRect(Math.random()*900, Math.random()*220, 2, 2);
-    }
-}
-
-// ---------------- TREES ----------------
-
-function drawTrees(phase) {
-    for (let i = 0; i < 18; i++) {
-        let x = i * 60;
-
-        ctx.fillStyle = (phase === 0) ? "#05070c" : "#1f3b2a";
-
-        ctx.fillRect(x, 260, 20, 160);
-        ctx.beginPath();
-        ctx.arc(x + 10, 260, 30, 0, Math.PI * 2);
-        ctx.fill();
-    }
-}
-
-// ---------------- GROUND ----------------
-
-function drawGround() {
-    ctx.fillStyle = "#1a1f2e";
-    ctx.fillRect(0, 340, 900, 80);
-}
-
-// ---------------- CLOUDS ----------------
-
-function drawClouds() {
-    ctx.fillStyle = "rgba(255,255,255,0.7)";
-
-    for (let c of clouds) {
-        ctx.beginPath();
-        ctx.arc(c.x, c.y, c.s, 0, Math.PI * 2);
-        ctx.fill();
-        c.x -= 1.2;
-    }
-
-    clouds = clouds.filter(c => c.x > -100);
-}
-
-// ---------------- UPDATE ----------------
-
+// ---------------- LOOP ----------------
 function update() {
-    if (gameOver) return;
+    if (!started || gameOver) return;
 
     time += 0.02;
 
     player.y += player.vy;
-
     if (player.y < ground) player.vy += gravity;
-    else {
-        player.y = ground;
-        player.vy = 0;
-    }
+    else { player.y = ground; player.vy = 0; }
 
     for (let o of obstacles) o.x -= speed;
 
     score++;
     document.getElementById("score").innerText =
-        "Score: " + Math.floor(score / 10);
+        "Score: " + Math.floor(score/10);
 
     if (score % 200 === 0) speed += 0.5;
 
@@ -291,45 +238,21 @@ function update() {
 }
 
 // ---------------- DRAW ----------------
-
 function drawPlayer() {
     ctx.fillStyle = "#ffd54a";
     ctx.fillRect(player.x, player.y, player.w, player.h);
 
     ctx.fillStyle = "black";
-    ctx.fillRect(player.x + 6, player.y + 8, 3, 3);
-    ctx.fillRect(player.x + 16, player.y + 8, 3, 3);
+    ctx.fillRect(player.x+6, player.y+8, 3, 3);
+    ctx.fillRect(player.x+16, player.y+8, 3, 3);
 }
 
 function drawObstacles() {
     ctx.fillStyle = "#7a4a1f";
-
-    for (let o of obstacles) {
-        ctx.fillRect(o.x, o.y, o.w, o.h);
-    }
-}
-
-// ---------------- LOOP ----------------
-
-function loop() {
-    let phase = getPhase();
-
-    drawSky(phase);
-    drawStars(phase);
-    drawSunMoon(phase);
-    drawTrees(phase);
-    drawClouds();
-    drawGround();
-
-    update();
-    drawPlayer();
-    drawObstacles();
-
-    requestAnimationFrame(loop);
+    for (let o of obstacles) ctx.fillRect(o.x,o.y,o.w,o.h);
 }
 
 // ---------------- GAME OVER ----------------
-
 function endGame() {
     gameOver = true;
     document.getElementById("gameover").style.display = "block";
@@ -337,16 +260,30 @@ function endGame() {
 }
 
 function resetGame() {
+    started = false;
+    gameOver = false;
     score = 0;
     speed = 6;
-    gameOver = false;
     obstacles = [];
-    clouds = [];
+
     player.y = ground;
     player.vy = 0;
 
     document.getElementById("gameover").style.display = "none";
     document.getElementById("restart").style.display = "none";
+    document.getElementById("startScreen").style.display = "flex";
+}
+
+// ---------------- MAIN LOOP ----------------
+function loop() {
+    let phase = getPhase();
+
+    drawSky(phase);
+    update();
+    drawPlayer();
+    drawObstacles();
+
+    requestAnimationFrame(loop);
 }
 
 loop();
@@ -356,4 +293,4 @@ loop();
 </html>
 """
 
-components.html(game_html, height=600)
+components.html(game_html, height=650)
