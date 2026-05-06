@@ -154,6 +154,8 @@ let player={
 };
 
 let obstacles=[];
+let coins=[];
+
 let gravity=1.1;
 let ground=300;
 
@@ -178,12 +180,29 @@ function jump(){
     if(player.y>=ground) player.vy=-15;
 }
 
-/* SPAWN */
+/* RANDOM OBSTACLES */
+function spawnObstacle(){
+    if(!started || gameOver) return;
+
+    obstacles.push({x:900,y:320,w:40,h:40});
+
+    let delay = 500 + Math.random()*1500;
+    setTimeout(spawnObstacle, delay);
+}
+spawnObstacle();
+
+/* COINS SPAWN */
 setInterval(()=>{
-    if(started&&!gameOver){
-        obstacles.push({x:900,y:320,w:40,h:40});
+    if(started && !gameOver){
+        if(Math.random()<0.5){
+            coins.push({
+                x:900,
+                y:260+Math.random()*40,
+                r:10
+            });
+        }
     }
-},1500);
+},1200);
 
 /* UPDATE */
 function update(){
@@ -197,6 +216,22 @@ function update(){
 
     obstacles.forEach(o=>o.x-=speed);
 
+    // COINS MOVE + COLLISION
+    coins.forEach(c=>c.x-=speed);
+    coins = coins.filter(c=>{
+        let hit =
+            player.x < c.x + c.r &&
+            player.x + player.w > c.x &&
+            player.y < c.y + c.r &&
+            player.y + player.h > c.y;
+
+        if(hit){
+            score += 100;
+            return false;
+        }
+        return c.x > -50;
+    });
+
     score++;
     level=Math.floor(score/500)+1;
     speed=6+level*0.5;
@@ -205,82 +240,67 @@ function update(){
     document.getElementById("level").innerText="Level: "+level;
 
     obstacles.forEach(o=>{
-        if(hit(o)) endGame();
+        if(hitBox(o)) endGame();
     });
 
     obstacles=obstacles.filter(o=>o.x>-100);
 }
 
 /* COLLISION */
-function hit(o){
+function hitBox(o){
     return player.x<o.x+o.w &&
            player.x+player.w>o.x &&
            player.y<o.y+o.h &&
            player.y+player.h>o.y;
 }
 
-/* DAY SYSTEM */
-function phase(){
-    let t=time%60;
-    if(t<20) return "night";
-    if(t<30) return "sunrise";
-    if(t<50) return "day";
-    return "sunset";
+/* SMOOTH SKY */
+function lerpColor(a,b,t){
+    let ar=parseInt(a.substr(1,2),16);
+    let ag=parseInt(a.substr(3,2),16);
+    let ab=parseInt(a.substr(5,2),16);
+
+    let br=parseInt(b.substr(1,2),16);
+    let bg=parseInt(b.substr(3,2),16);
+    let bb=parseInt(b.substr(5,2),16);
+
+    let rr=Math.floor(ar+(br-ar)*t);
+    let rg=Math.floor(ag+(bg-ag)*t);
+    let rb=Math.floor(ab+(bb-ab)*t);
+
+    return "rgb("+rr+","+rg+","+rb+")";
 }
 
-/* SKY */
 function drawSky(){
-    let p=phase();
-    if(p==="night") ctx.fillStyle="#050817";
-    else if(p==="sunrise") ctx.fillStyle="#ff9966";
-    else if(p==="day") ctx.fillStyle="#87ceeb";
-    else ctx.fillStyle="#ff5e62";
 
+    let t=time%60;
+    let color;
+
+    if(t<20){
+        color=lerpColor("#050817","#ff9966",t/20);
+    }
+    else if(t<30){
+        color=lerpColor("#ff9966","#87ceeb",(t-20)/10);
+    }
+    else if(t<50){
+        color="#87ceeb";
+    }
+    else{
+        color=lerpColor("#ff5e62","#050817",(t-50)/10);
+    }
+
+    ctx.fillStyle=color;
     ctx.fillRect(0,0,900,420);
 }
 
 /* CLOUDS */
 function drawClouds(){
-    let p=phase();
-
-    if(p==="night") ctx.fillStyle="rgba(200,200,255,0.2)";
-    else if(p==="sunrise"||p==="sunset") ctx.fillStyle="rgba(255,200,150,0.5)";
-    else ctx.fillStyle="white";
-
+    ctx.fillStyle="rgba(255,255,255,0.5)";
     for(let i=0;i<6;i++){
         let x=(i*180+time*15)%900;
         ctx.beginPath();
         ctx.arc(x,90,18,0,Math.PI*2);
         ctx.arc(x+20,90,18,0,Math.PI*2);
-        ctx.fill();
-    }
-}
-
-/* STARS */
-function drawStars(){
-    if(phase()!=="night") return;
-
-    ctx.fillStyle="white";
-    for(let i=0;i<60;i++){
-        let x=(i*70)%900;
-        let y=(i*30)%200;
-        ctx.fillRect(x,y,2,2);
-    }
-}
-
-/* SUN/MOON */
-function drawSunMoon(){
-    let p=phase();
-
-    if(p==="night"){
-        ctx.fillStyle="#ddd";
-        ctx.beginPath();
-        ctx.arc(750,80,25,0,Math.PI*2);
-        ctx.fill();
-    } else {
-        ctx.fillStyle="yellow";
-        ctx.beginPath();
-        ctx.arc(750,80,30,0,Math.PI*2);
         ctx.fill();
     }
 }
@@ -305,9 +325,7 @@ function draw(){
     ctx.clearRect(0,0,900,420);
 
     drawSky();
-    drawStars();
     drawClouds();
-    drawSunMoon();
     drawTrees();
 
     ctx.fillStyle="#1a1f2e";
@@ -320,9 +338,18 @@ function draw(){
     ctx.fillRect(player.x+6,player.y+8,3,3);
     ctx.fillRect(player.x+16,player.y+8,3,3);
 
+    // obstacles
     ctx.fillStyle="#7a4a1f";
     obstacles.forEach(o=>{
         ctx.fillRect(o.x,o.y,o.w,o.h);
+    });
+
+    // coins
+    ctx.fillStyle="gold";
+    coins.forEach(c=>{
+        ctx.beginPath();
+        ctx.arc(c.x,c.y,c.r,0,Math.PI*2);
+        ctx.fill();
     });
 }
 
@@ -340,6 +367,7 @@ function resetGame(){
     level=1;
     speed=6;
     obstacles=[];
+    coins=[];
     player.y=ground;
     player.vy=0;
 
