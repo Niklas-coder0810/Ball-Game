@@ -154,8 +154,6 @@ let player={
 };
 
 let obstacles=[];
-let coins=[];
-
 let gravity=1.1;
 let ground=300;
 
@@ -180,29 +178,26 @@ function jump(){
     if(player.y>=ground) player.vy=-15;
 }
 
-/* RANDOM OBSTACLES */
-function spawnObstacle(){
-    if(!started || gameOver) return;
+/* RANDOM SPAWN SYSTEM */
+let spawnTimer = 60;
 
-    obstacles.push({x:900,y:320,w:40,h:40});
+function updateSpawning(){
 
-    let delay = 500 + Math.random()*1500;
-    setTimeout(spawnObstacle, delay);
-}
-spawnObstacle();
+    spawnTimer--;
 
-/* COINS SPAWN */
-setInterval(()=>{
-    if(started && !gameOver){
-        if(Math.random()<0.5){
-            coins.push({
-                x:900,
-                y:260+Math.random()*40,
-                r:10
-            });
-        }
+    if(spawnTimer <= 0){
+
+        obstacles.push({
+            x:900,
+            y:320,
+            w:40,
+            h:40
+        });
+
+        // zufällige Abstände + schwieriger mit Level
+        spawnTimer = Math.max(20, 60 + Math.random()*100 - level*5);
     }
-},1200);
+}
 
 /* UPDATE */
 function update(){
@@ -210,44 +205,32 @@ function update(){
 
     time+=0.02;
 
+    updateSpawning();
+
     player.y+=player.vy;
     if(player.y<ground) player.vy+=gravity;
     else {player.y=ground;player.vy=0;}
 
     obstacles.forEach(o=>o.x-=speed);
 
-    // COINS MOVE + COLLISION
-    coins.forEach(c=>c.x-=speed);
-    coins = coins.filter(c=>{
-        let hit =
-            player.x < c.x + c.r &&
-            player.x + player.w > c.x &&
-            player.y < c.y + c.r &&
-            player.y + player.h > c.y;
-
-        if(hit){
-            score += 100;
-            return false;
-        }
-        return c.x > -50;
-    });
-
     score++;
-    level=Math.floor(score/500)+1;
-    speed=6+level*0.5;
+
+    // Schwierigkeit alle 100 Punkte
+    level = Math.floor(score/100) + 1;
+    speed = 6 + level * 0.7;
 
     document.getElementById("score").innerText="Score: "+Math.floor(score/10);
     document.getElementById("level").innerText="Level: "+level;
 
     obstacles.forEach(o=>{
-        if(hitBox(o)) endGame();
+        if(hit(o)) endGame();
     });
 
     obstacles=obstacles.filter(o=>o.x>-100);
 }
 
 /* COLLISION */
-function hitBox(o){
+function hit(o){
     return player.x<o.x+o.w &&
            player.x+player.w>o.x &&
            player.y<o.y+o.h &&
@@ -338,18 +321,9 @@ function draw(){
     ctx.fillRect(player.x+6,player.y+8,3,3);
     ctx.fillRect(player.x+16,player.y+8,3,3);
 
-    // obstacles
     ctx.fillStyle="#7a4a1f";
     obstacles.forEach(o=>{
         ctx.fillRect(o.x,o.y,o.w,o.h);
-    });
-
-    // coins
-    ctx.fillStyle="gold";
-    coins.forEach(c=>{
-        ctx.beginPath();
-        ctx.arc(c.x,c.y,c.r,0,Math.PI*2);
-        ctx.fill();
     });
 }
 
@@ -367,7 +341,6 @@ function resetGame(){
     level=1;
     speed=6;
     obstacles=[];
-    coins=[];
     player.y=ground;
     player.vy=0;
 
